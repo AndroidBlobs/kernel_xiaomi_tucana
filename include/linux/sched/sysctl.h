@@ -38,6 +38,7 @@ extern unsigned int sysctl_sched_use_walt_task_util;
 extern unsigned int sysctl_sched_walt_init_task_load_pct;
 extern unsigned int sysctl_sched_cpu_high_irqload;
 extern unsigned int sysctl_sched_boost;
+extern unsigned int sysctl_sched_boost_top_app;
 extern unsigned int sysctl_sched_group_upmigrate_pct;
 extern unsigned int sysctl_sched_group_downmigrate_pct;
 extern unsigned int sysctl_sched_walt_rotate_big_tasks;
@@ -83,6 +84,9 @@ int sched_proc_update_handler(struct ctl_table *table, int write,
 #endif
 
 extern int sched_boost_handler(struct ctl_table *table, int write,
+			void __user *buffer, size_t *lenp, loff_t *ppos);
+
+extern int sched_boost_top_app_handler(struct ctl_table *table, int write,
 			void __user *buffer, size_t *lenp, loff_t *ppos);
 
 /*
@@ -133,7 +137,7 @@ extern int sched_little_cluster_coloc_fmin_khz_handler(struct ctl_table *table,
 
 #define LIB_PATH_LENGTH 512
 extern char sched_lib_name[LIB_PATH_LENGTH];
+extern unsigned int sched_lib_mask_check;
 extern unsigned int sched_lib_mask_force;
-extern bool is_sched_lib_based_app(pid_t pid);
 
 #endif /* _LINUX_SCHED_SYSCTL_H */
