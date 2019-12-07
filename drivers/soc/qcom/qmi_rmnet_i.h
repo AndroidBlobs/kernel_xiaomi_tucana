@@ -45,7 +45,6 @@ struct rmnet_bearer_map {
 	u16 last_seq;
 	bool tcp_bidir;
 	bool rat_switch;
-	bool tx_off;
 };
 
 struct svc_info {
@@ -123,10 +122,6 @@ int qmi_rmnet_flow_control(struct net_device *dev, u32 tcm_handle, int enable);
 void dfc_qmi_wq_flush(struct qmi_info *qmi);
 
 void dfc_qmi_query_flow(void *dfc_data);
-
-int dfc_bearer_flow_ctl(struct net_device *dev,
-			struct rmnet_bearer_map *bearer,
-			struct qos_info *qos);
 #else
 static inline struct rmnet_flow_map *
 qmi_rmnet_get_flow_map(struct qos_info *qos_info,
@@ -166,14 +161,6 @@ dfc_qmi_wq_flush(struct qmi_info *qmi)
 static inline void
 dfc_qmi_query_flow(void *dfc_data)
 {
-}
-
-static inline int
-dfc_bearer_flow_ctl(struct net_device *dev,
-		    struct rmnet_bearer_map *bearer,
-		    struct qos_info *qos)
-{
-	return 0;
 }
 #endif
 
