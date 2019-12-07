@@ -2675,7 +2675,6 @@
 
 			qcom,modem_qrtr {
 				qcom,glink-channels = "IPCRTR";
-				qcom,low-latency;
 				qcom,intents = <0x800  5
 						0x2000 3
 						0x4400 2>;
@@ -2750,7 +2749,6 @@
 
 			qcom,slpi_qrtr {
 				qcom,glink-channels = "IPCRTR";
-				qcom,low-latency;
 				qcom,intents = <0x800  5
 						0x2000 3
 						0x4400 2>;
