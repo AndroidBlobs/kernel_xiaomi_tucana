@@ -1,4 +1,5 @@
-/* Copyright (c) 2017-2019 The Linux Foundation. All rights reserved.
+/* Copyright (c) 2017-2018 The Linux Foundation. All rights reserved.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -81,7 +82,6 @@
 #define ATEST1_SEL_MASK			GENMASK(6, 0)
 #define ISNS_INT_VAL			0x09
 
-#define BATT_PROFILE_VOTER	"BATT_PROFILE_VOTER"
 #define CP_VOTER		"CP_VOTER"
 #define USER_VOTER		"USER_VOTER"
 #define ILIM_VOTER		"ILIM_VOTER"
@@ -308,6 +308,20 @@ static ssize_t stat2_show(struct class *c, struct class_attribute *attr,
 }
 static CLASS_ATTR_RO(stat2);
 
+static ssize_t model_name_show(struct class *c, struct class_attribute *attr,
+			char *buf)
+{
+	struct smb1390 *chip = container_of(c, struct smb1390, cp_class);
+	int rc, val;
+
+	rc = smb1390_read(chip, CORE_STATUS1_REG, &val);
+	if (rc < 0)
+		return snprintf(buf, PAGE_SIZE, "%s\n", "unknown");
+	else
+		return snprintf(buf, PAGE_SIZE, "%s\n", "smb1390");
+}
+static CLASS_ATTR_RO(model_name);
+
 static ssize_t enable_show(struct class *c, struct class_attribute *attr,
 			   char *buf)
 {
@@ -434,6 +448,7 @@ static struct attribute *cp_class_attrs[] = {
 	&class_attr_toggle_switcher.attr,
 	&class_attr_die_temp.attr,
 	&class_attr_isns.attr,
+	&class_attr_model_name.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(cp_class);
@@ -545,7 +560,7 @@ static void smb1390_status_change_work(struct work_struct *work)
 	struct smb1390 *chip = container_of(work, struct smb1390,
 					    status_change_work);
 	union power_supply_propval pval = {0, };
-	int max_fcc_ma, rc;
+	int rc;
 
 	if (!is_psy_voter_available(chip))
 		goto out;
@@ -622,10 +637,7 @@ static void smb1390_status_change_work(struct work_struct *work)
 		}
 	} else {
 		vote(chip->disable_votable, SRC_VOTER, true, 0);
-		max_fcc_ma = get_client_vote(chip->fcc_votable,
-				BATT_PROFILE_VOTER);
-		vote(chip->fcc_votable, CP_VOTER,
-				max_fcc_ma > 0 ? true : false, max_fcc_ma);
+		vote(chip->fcc_votable, CP_VOTER, false, 0);
 	}
 
 out:
@@ -643,15 +655,9 @@ static void smb1390_taper_work(struct work_struct *work)
 		goto out;
 
 	do {
-		fcc_uA = get_effective_result(chip->fcc_votable);
-		if (fcc_uA < 2000000)
-			break;
-
-		fcc_uA = get_client_vote(chip->fcc_votable, CP_VOTER) - 100000;
+		fcc_uA = get_effective_result(chip->fcc_votable) - 100000;
 		pr_debug("taper work reducing FCC to %duA\n", fcc_uA);
 		vote(chip->fcc_votable, CP_VOTER, true, fcc_uA);
-
-		msleep(500);
 
 		rc = power_supply_get_property(chip->batt_psy,
 					POWER_SUPPLY_PROP_CHARGE_TYPE, &pval);
@@ -660,7 +666,9 @@ static void smb1390_taper_work(struct work_struct *work)
 			goto out;
 		}
 
-	} while (pval.intval == POWER_SUPPLY_CHARGE_TYPE_TAPER);
+		msleep(500);
+	} while (fcc_uA >= 2000000
+		 && pval.intval == POWER_SUPPLY_CHARGE_TYPE_TAPER);
 
 out:
 	pr_debug("taper work exit\n");
